@@ -39,6 +39,7 @@ var classBase = React.createClass({
     },
     selectName: React.PropTypes.string.isRequired,
     defaultValue: React.PropTypes.string,
+    ariaLabel: React.PropTypes.string,
     placeholderText: React.PropTypes.string,
     typeaheadDelay: React.PropTypes.number,
     showCurrentOptionWhenOpen: React.PropTypes.bool,
@@ -54,7 +55,8 @@ var classBase = React.createClass({
     currentOptionClassName: React.PropTypes.string,
     hiddenSelectClassName: React.PropTypes.string,
     currentOptionStyle: React.PropTypes.object,
-    optionListStyle: React.PropTypes.object
+    optionListStyle: React.PropTypes.object,
+    disableUpDownAutoRefresh: React.PropTypes.bool
   },
   getDefaultProps () {
     return {
@@ -71,7 +73,8 @@ var classBase = React.createClass({
       hiddenSelectClassName: 'radon-select-hidden-select',
       disabledClassName: 'radon-select-disabled',
       currentOptionStyle: {},
-      optionListStyle: {}
+      optionListStyle: {},
+      disableUpDownAutoRefresh: false
     };
   },
   getInitialState () {
@@ -132,7 +135,9 @@ var classBase = React.createClass({
       selectedOptionIndex: selectedOptionIndex,
       selectedOptionVal: this.props.children[selectedOptionIndex].props.value
     }, function () {
-      this.onChange();
+      if (!this.props.disableUpDownAutoRefresh) {
+        this.onChange();
+      }
 
       if (this.state.open) {
         this.isFocusing = true;
@@ -380,6 +385,7 @@ var classBase = React.createClass({
           value={this.state.selectedOptionVal}
           className={this.props.hiddenSelectClassName}
           tabIndex={-1}
+          aria-label={this.props.ariaLabel ? this.props.ariaLabel : this.props.selectName }
           aria-hidden={true} >
             {React.Children.map(this.props.children, function (child, index) {
               return <option key={index} value={child.props.value}>{child.props.value}</option>
@@ -437,12 +443,6 @@ classBase.Option = React.createClass({
       hovered: isHover
     });
   },
-  tap () {
-    // Call onClick indirectly so that React's Synthetic Touch Event doesn't propagate.
-    // The resulting behavior should be that an options dropdown list can be scrolled
-    // and only selects an option when a user has tapped an option without dragging the parent.
-    this.props.onClick();
-  },
   render () {
     return (
       // Safari ignores tabindex on buttons, and Firefox ignores tabindex on anchors
@@ -452,11 +452,6 @@ classBase.Option = React.createClass({
         className={this.getClassNames()}
         data-automation-id={this.props.automationId}
         tabIndex={-1}
-
-        // This is a workaround for a long-standing iOS/React issue with click events.
-        // See https://github.com/facebook/react/issues/134 for more information.
-        onTouchStart={this.tap}
-
         onMouseDown={this.props.onClick}
         onMouseEnter={this.setHover.bind(this, true)}
         onMouseLeave={this.setHover.bind(this, false)}
